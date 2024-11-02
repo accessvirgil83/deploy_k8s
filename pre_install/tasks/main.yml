@@ -1,0 +1,55 @@
+---
+
+- name: Pre_install
+  hosts: k8s_servers
+  become: yes
+  tasks:
+    - name: Download kubectl
+      get_url:
+        url: https://storage.googleapis.com/kubernetes-release/release/v1.21.2/bin/linux/amd64/kubectl
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
+
+    - name: Download kubelet
+      get_url:
+        url: https://storage.googleapis.com/kubernetes-release/release/v1.21.2/bin/linux/amd64/kubelet
+        dest: /usr/local/bin/kubelet
+        mode: '0755'
+
+    - name: Download kubeadm
+      get_url:
+        url: https://storage.googleapis.com/kubernetes-release/release/v1.21.2/bin/linux/amd64/kubeadm
+        dest: /usr/local/bin/kubeadm
+        mode: '0755'
+
+    - name: Disable swap and update fstab
+      command: swapoff -a
+      register: swapoff_result
+      ignore_errors: yes
+
+    - name: Remove swap entry from fstab
+      command: sed -i '/swap/d' /etc/fstab
+      when: swapoff_result.rc == 0
+
+    - name: Load br_netfilter module
+      command: modprobe br_netfilter
+
+    - name: Set sysctl parameters
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: yes
+      loop:
+        - { name: 'net.bridge.bridge-nf-call-iptables', value: 1 }
+        - { name: 'net.ipv4.ip_forward', value: 1 }
+
+    - name: Install required packages
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: yes
