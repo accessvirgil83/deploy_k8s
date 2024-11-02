@@ -1,0 +1,24 @@
+---
+- name: Install MongoDB on Ubuntu
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install wget package
+      apt:
+        name: wget
+        state: present
+        update_cache: yes  # Обновление кэша перед установкой
+
+    - name: Copy MongoDB installation script
+      template:
+        src: install_mongodb.sh
+        dest: /tmp/install_mongodb.sh
+        mode: '0755'  # Сделать файл исполняемым
+
+    - name: Run MongoDB installation script
+      command: /tmp/install_mongodb.sh
+
+    - name: Clean up installation script
+      file:
+        path: /tmp/install_mongodb.sh
+        state: absent  # Удалить скрипт после выполнения
